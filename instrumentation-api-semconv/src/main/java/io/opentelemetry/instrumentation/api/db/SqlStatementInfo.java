@@ -6,7 +6,6 @@
 package io.opentelemetry.instrumentation.api.db;
 
 import com.google.auto.value.AutoValue;
-import java.util.function.Function;
 import javax.annotation.Nullable;
 
 @AutoValue
@@ -17,11 +16,6 @@ public abstract class SqlStatementInfo {
     return new AutoValue_SqlStatementInfo(fullStatement, operation, identifier);
   }
 
-  public SqlStatementInfo mapTable(Function<String, String> mapper) {
-    return SqlStatementInfo.create(
-        getFullStatement(), getOperation(), mapper.apply(getIdentifier()));
-  }
-
   @Nullable
   public abstract String getFullStatement();
 
@@ -29,14 +23,5 @@ public abstract class SqlStatementInfo {
   public abstract String getOperation();
 
   @Nullable
-  public abstract String getIdentifier();
-
-  @Nullable
-  public String getTable() {
-    String operation = getOperation();
-    if (operation != null && !operation.equals("CALL")) {
-      return getIdentifier();
-    }
-    return null;
-  }
+  public abstract String getMainIdentifier();
 }

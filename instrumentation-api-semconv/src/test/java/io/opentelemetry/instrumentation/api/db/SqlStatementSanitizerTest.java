@@ -276,6 +276,7 @@ public class SqlStatementSanitizerTest {
           Arguments.of("/* update comment */ select * from table1", expect("SELECT", "table1")),
           Arguments.of("select /*((*/abc from table", expect("SELECT", "table")),
           Arguments.of("SeLeCT * FrOm TAblE", expect("SELECT", "table")),
+          Arguments.of("select next value in hibernate_sequence", expect("SELECT", null)),
 
           // hibernate/jpa
           Arguments.of("FROM schema.table", expect("SELECT", "schema.table")),

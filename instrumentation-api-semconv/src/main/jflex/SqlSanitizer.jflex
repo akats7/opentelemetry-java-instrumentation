@@ -64,12 +64,12 @@ WHITESPACE          = [ \t\r\n]+
 
   /** @return text matched by current token without enclosing double quotes or backticks */
   private String readIdentifierName() {
-    String IdentifierName = yytext();
-    if (IdentifierName != null && ((IdentifierName.startsWith("\"") && IdentifierName.endsWith("\""))
-        || (IdentifierName.startsWith("`") && IdentifierName.endsWith("`")))) {
-      IdentifierName = IdentifierName.substring(1, IdentifierName.length() - 1);
+    String identifierName = yytext();
+    if (identifierName != null && ((identifierName.startsWith("\"") && identifierName.endsWith("\""))
+        || (identifierName.startsWith("`") && identifierName.endsWith("`")))) {
+      identifierName = identifierName.substring(1, identifierName.length() - 1);
     }
-    return IdentifierName;
+    return identifierName;
   }
 
   // you can reference a table in the FROM clause in one of the following ways:
@@ -316,13 +316,12 @@ WHITESPACE          = [ \t\r\n]+
           if (isOverLimit()) return YYEOF;
       }
   "CALL" {
-       if (!insideComment) {
-        setOperation(new Call());
-        }
-        operation.handleIdentifier();
-        appendCurrentFragment();
-        if (isOverLimit()) return YYEOF;
-  }
+          if (!insideComment) {
+            setOperation(new Call());
+          }
+          appendCurrentFragment();
+          if (isOverLimit()) return YYEOF;
+      }
   "MERGE" {
           if (!insideComment) {
             setOperation(new Merge());

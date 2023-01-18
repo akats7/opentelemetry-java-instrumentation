@@ -29,7 +29,8 @@ public abstract class DbClientSpanNameExtractor<REQUEST> implements SpanNameExtr
    *
    * @see SqlStatementInfo#getOperation() used to extract {@code <db.operation>}.
    * @see DbClientAttributesGetter#name(Object) used to extract {@code <db.name>}.
-   * @see SqlStatementInfo#getIdentifier() used to extract {@code <db.identifier>}.
+   * @see SqlStatementInfo#getMainIdentifier() used to extract {@code <db.table>} or stored
+   *     procedure name.
    */
   public static <REQUEST> SpanNameExtractor<REQUEST> create(
       SqlClientAttributesGetter<REQUEST> getter) {
@@ -96,7 +97,7 @@ public abstract class DbClientSpanNameExtractor<REQUEST> implements SpanNameExtr
       String dbName = getter.name(request);
       SqlStatementInfo sanitizedStatement = sanitizer.sanitize(getter.rawStatement(request));
       return computeSpanName(
-          dbName, sanitizedStatement.getOperation(), sanitizedStatement.getIdentifier());
+          dbName, sanitizedStatement.getOperation(), sanitizedStatement.getMainIdentifier());
     }
   }
 }
