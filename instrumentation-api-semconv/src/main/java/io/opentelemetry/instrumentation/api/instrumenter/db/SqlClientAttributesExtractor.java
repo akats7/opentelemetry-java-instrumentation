@@ -64,7 +64,7 @@ public final class SqlClientAttributesExtractor<REQUEST, RESPONSE>
     String operation = sanitizedStatement.getOperation();
     internalSet(attributes, SemanticAttributes.DB_STATEMENT, sanitizedStatement.getFullStatement());
     internalSet(attributes, SemanticAttributes.DB_OPERATION, operation);
-    if (operation != null && !operation.equals(SQL_CALL)) {
+    if (!SQL_CALL.equals(operation)) {
       internalSet(attributes, dbTableAttribute, sanitizedStatement.getMainIdentifier());
     }
   }
