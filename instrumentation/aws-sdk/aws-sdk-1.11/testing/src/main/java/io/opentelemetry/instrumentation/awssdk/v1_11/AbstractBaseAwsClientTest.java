@@ -5,6 +5,7 @@
 
 package io.opentelemetry.instrumentation.awssdk.v1_11;
 
+import static io.opentelemetry.api.common.AttributeKey.stringArrayKey;
 import static io.opentelemetry.api.common.AttributeKey.stringKey;
 import static io.opentelemetry.api.trace.SpanKind.CLIENT;
 import static io.opentelemetry.api.trace.SpanKind.PRODUCER;
@@ -28,16 +29,65 @@ import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.AnonymousAWSCredentials;
 import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.handlers.RequestHandler2;
+import io.opentelemetry.api.common.AttributeType;
 import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;
 import io.opentelemetry.sdk.testing.assertj.AttributeAssertion;
 import io.opentelemetry.testing.internal.armeria.testing.junit5.server.mock.MockWebServerExtension;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+
+//class AttributeKeyPair {
+//
+//  private AttributeKey key;
+//  private Object value;
+//
+//  AttributeKeyPair(AttributeKey key, Object value) {
+//    this.key = key;
+//    this.value = value;
+//  }
+//
+//  public static AttributeKeyPair createAttributeKeyPair(String keyString,AttributeType type, Object val){
+//
+//    AttributeKey key;
+//    if (type != AttributeType.STRING && type != AttributeType.STRING_ARRAY) {
+//      return null;
+//    } else if (type == AttributeType.STRING){
+//      key = AttributeKey.stringKey(keyString);
+//    } else {
+//      key = AttributeKey.stringArrayKey(keyString);
+//    }
+//    return new AttributeKeyPair(key, val);
+//  }
+//
+//  public AttributeType getType() {
+//    return key.getType();
+//  }
+//
+//  public AttributeKey getKey() {
+//    return key;
+//  }
+//
+//  public String getStringVal(){
+//    if (key.getType() != AttributeType.STRING){
+//      return null;
+//    }
+//    return (String) value;
+//  }
+//
+//  public List<String> getStringArrayVal(){
+//    if (key.getType() != AttributeType.STRING_ARRAY){
+//      return null;
+//    }
+//    return (List<String>)value;
+//  }
+//}
+
+
 
 public abstract class AbstractBaseAwsClientTest {
   protected abstract InstrumentationExtension testing();
@@ -75,9 +125,13 @@ public abstract class AbstractBaseAwsClientTest {
       String service,
       String operation,
       String method,
-      Map<String, String> additionalAttributes)
+      List<AttributeKeyPair<?>> additionalAttributes)
+//      Map<String, Pair<AttributeType,Object>> additionalAttributes)
       throws Exception {
 
+
+    List<String> tmpList = Collections.singletonList("sometable");
+    equalTo(stringArrayKey("aws.dynamodb.table_names"),tmpList);
     assertThat(response).isNotNull();
 
     List<RequestHandler2> requestHandler2s = extractRequestHandlers(client);
@@ -113,8 +167,35 @@ public abstract class AbstractBaseAwsClientTest {
                                 stringKey("aws.request_id"), v -> v.isInstanceOf(String.class)));
                       }
 
+//                      additionalAttributes.forEach(
+//                          (k, pair) -> {
+//                            if (pair.getLeft() == AttributeType.STRING){
+//                              attributes.add(equalTo(stringKey(k), (String)pair.getRight()));
+//                            } else if (pair.getLeft() == AttributeType.STRING_ARRAY) {
+//                              @SuppressWarnings("unchecked")
+//                              List<String> stringList = (List<String>) pair.getRight();
+//                              attributes.add(equalTo(stringArrayKey(k), stringList));
+//                            }
+//                          });
+
                       additionalAttributes.forEach(
-                          (k, v) -> attributes.add(equalTo(stringKey(k), v)));
+                          (att) -> {
+                            if (att.getType() == AttributeType.STRING) {
+                              attributes.add(equalTo(att.getStringKey(), att.getStringVal()));
+                            } else if (att.getType() == AttributeType.STRING_ARRAY) {
+                              attributes.add(equalTo(att.getStringArrayKey(), att.getStringArrayVal()));
+                            }
+                          });
+//                      additionalAttributes.forEach(
+//                          (att) -> {
+//                            if (att.getType() == AttributeType.STRING){
+//                              attributes.add(equalTo(att.getKey(), att.getStringVal()));
+//                            } else if (att.getType() == AttributeType.STRING_ARRAY) {
+//                              @SuppressWarnings("unchecked")
+//                              List<String> stringList = att.getStringArrayVal();
+//                              attributes.add(equalTo(att.getKey(), stringList));
+//                            }
+//                          });
 
                       span.hasName(service + "." + operation)
                           .hasKind(operation.equals("SendMessage") ? PRODUCER : CLIENT)

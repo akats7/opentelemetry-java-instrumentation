@@ -9,8 +9,10 @@ dependencies {
   library("com.amazonaws:aws-java-sdk-sqs:1.11.106")
   compileOnly(project(":muzzle"))
 
+  testImplementation("org.apache.commons:commons-lang3:3.12.0")
   testImplementation(project(":instrumentation:aws-sdk:aws-sdk-1.11:testing"))
 
+  testLibrary("org.apache.commons:commons-lang3:3.12.0")
   testLibrary("com.amazonaws:aws-java-sdk-s3:1.11.106")
   testLibrary("com.amazonaws:aws-java-sdk-rds:1.11.106")
   testLibrary("com.amazonaws:aws-java-sdk-ec2:1.11.106")

@@ -21,4 +21,5 @@ dependencies {
   implementation("com.google.guava:guava")
 
   implementation("io.opentelemetry:opentelemetry-api")
+  implementation("org.apache.commons:commons-lang3:3.12.0")
 }
