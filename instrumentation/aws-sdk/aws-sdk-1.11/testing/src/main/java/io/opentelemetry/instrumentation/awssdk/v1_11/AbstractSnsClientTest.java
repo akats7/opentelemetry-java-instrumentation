@@ -5,6 +5,7 @@
 
 package io.opentelemetry.instrumentation.awssdk.v1_11;
 
+import static io.opentelemetry.instrumentation.awssdk.v1_11.AttributeKeyPair.createStringKeyPair;
 import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_DESTINATION_NAME;
 
 import com.amazonaws.services.sns.AmazonSNS;
@@ -14,7 +15,8 @@ import com.google.common.collect.ImmutableMap;
 import io.opentelemetry.testing.internal.armeria.common.HttpResponse;
 import io.opentelemetry.testing.internal.armeria.common.HttpStatus;
 import io.opentelemetry.testing.internal.armeria.common.MediaType;
-import java.util.Map;
+import java.util.Arrays;
+import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Stream;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -52,8 +54,8 @@ public abstract class AbstractSnsClientTest extends AbstractBaseAwsClientTest {
 
     server.enqueue(HttpResponse.of(HttpStatus.OK, MediaType.PLAIN_TEXT_UTF_8, body));
 
-    Map<String, String> additionalAttributes =
-        ImmutableMap.of(MESSAGING_DESTINATION_NAME.toString(), "somearn");
+    List<AttributeKeyPair<?>> additionalAttributes = Arrays.asList(
+        createStringKeyPair(MESSAGING_DESTINATION_NAME.toString(), "somearn"));
 
     Object response = call.apply(client);
     assertRequestWithMockedResponse(
