@@ -6,6 +6,7 @@
 package io.opentelemetry.instrumentation.awssdk.v1_11;
 
 import static io.opentelemetry.api.common.AttributeKey.stringKey;
+import static io.opentelemetry.api.common.AttributeKey.stringArrayKey;
 import static io.opentelemetry.api.trace.SpanKind.CLIENT;
 import static io.opentelemetry.api.trace.SpanKind.PRODUCER;
 import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.equalTo;
@@ -28,13 +29,14 @@ import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.AnonymousAWSCredentials;
 import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.handlers.RequestHandler2;
+import io.opentelemetry.api.common.AttributeType;
 import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;
 import io.opentelemetry.sdk.testing.assertj.AttributeAssertion;
 import io.opentelemetry.testing.internal.armeria.testing.junit5.server.mock.MockWebServerExtension;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -75,7 +77,7 @@ public abstract class AbstractBaseAwsClientTest {
       String service,
       String operation,
       String method,
-      Map<String, String> additionalAttributes)
+      List<AttributeKeyPair<?>> additionalAttributes)
       throws Exception {
 
     assertThat(response).isNotNull();
@@ -114,7 +116,13 @@ public abstract class AbstractBaseAwsClientTest {
                       }
 
                       additionalAttributes.forEach(
-                          (k, v) -> attributes.add(equalTo(stringKey(k), v)));
+                          (att) -> {
+                            if (att.getType() == AttributeType.STRING) {
+                              attributes.add(equalTo(att.getStringKey(), att.getStringVal()));
+                            } else if (att.getType() == AttributeType.STRING_ARRAY) {
+                              attributes.add(equalTo(att.getStringArrayKey(), att.getStringArrayVal()));
+                            }
+                          });
 
                       span.hasName(service + "." + operation)
                           .hasKind(operation.equals("SendMessage") ? PRODUCER : CLIENT)
