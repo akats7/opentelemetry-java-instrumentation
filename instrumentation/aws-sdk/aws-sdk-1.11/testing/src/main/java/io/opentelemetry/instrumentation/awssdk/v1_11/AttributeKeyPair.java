@@ -26,3 +26,20 @@ public class AttributeKeyPair<T> {
   public AttributeType getType() {
     return key.getType();
   }
+
+  @SuppressWarnings("unchecked")
+  public AttributeKey<String> getStringKey() {
+    if (key.getType() != AttributeType.STRING){
+      return null;
+    }
+    return (AttributeKey<String>) key;
+  }
+
+  @SuppressWarnings("unchecked")
+  @Nullable
+  public AttributeKey<List<String>> getStringArrayKey() {
+    if (key.getType() != AttributeType.STRING_ARRAY) {
+      return null;
+    }
+    return (AttributeKey<List<String>>) key;
+  }
