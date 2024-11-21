@@ -43,3 +43,21 @@ public class AttributeKeyPair<T> {
     }
     return (AttributeKey<List<String>>) key;
   }
+
+  @SuppressWarnings("unchecked")
+  public String getStringVal(){
+    if (key.getType() != AttributeType.STRING){
+      return null;
+    }
+    return (String) value;
+  }
+
+  @SuppressWarnings("unchecked")
+  @Nullable
+  public List<String> getStringArrayVal(){
+    if (key.getType() != AttributeType.STRING_ARRAY){
+      return null;
+    }
+    return (List<String>)value;
+  }
+}
