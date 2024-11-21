@@ -14,3 +14,15 @@ public class AttributeKeyPair<T> {
     this.key = key;
     this.value = value;
   }
+
+  public static AttributeKeyPair<String> createStringKeyPair(String keyString, String val) {
+    return new AttributeKeyPair<>(AttributeKey.stringKey(keyString), val);
+  }
+
+  public static AttributeKeyPair<List<String>> createStringArrayKeyPair(String keyString, List<String> val) {
+    return new AttributeKeyPair<>(AttributeKey.stringArrayKey(keyString), val);
+  }
+
+  public AttributeType getType() {
+    return key.getType();
+  }
