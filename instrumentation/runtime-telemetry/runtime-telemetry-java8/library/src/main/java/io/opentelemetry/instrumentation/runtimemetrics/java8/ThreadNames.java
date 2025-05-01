@@ -55,6 +55,9 @@ public final class ThreadNames {
   static final ThreadNames INSTANCE = new ThreadNames();
 
   private static final AttributeKey<String> THREAD_NAME = AttributeKey.stringKey("jvm.thread.name");
+  private static final AttributeKey<String> CPU_MODE = AttributeKey.stringKey("cpu.mode");
+  private static final String USER_MODE = "user";
+  private static final String SYSTEM_MODE = "system";
 
   /** Register observers for java runtime class metrics. */
   public static List<AutoCloseable> registerObservers(OpenTelemetry openTelemetry) {
@@ -77,14 +80,6 @@ public final class ThreadNames {
             .setUnit("{ns}")
             .buildWithCallback(threadCpuTimeCallback(threadMxBean)));
 
-    observables.add(
-        meter
-            .upDownCounterBuilder("jvm.thread.user_time")
-            .setDescription(
-                "the amount of CPU time that the specified thread has spent in user mode")
-            .setUnit("{ns}")
-            .buildWithCallback(threadUserTimeCallback(threadMxBean)));
-
     return observables;
   }
 
@@ -106,39 +101,70 @@ public final class ThreadNames {
       ThreadMXBean threadBean) {
     return measurement -> {
       Map<Attributes, Long> times = new HashMap<>();
-      long[] threadIds = threadBean.getAllThreadIds();
-      for (ThreadInfo threadInfo : threadBean.getThreadInfo(threadIds)) {
-        if (threadInfo == null) {
-          continue;
-        }
+
+      for (ThreadInfo threadInfo : threadBean.getThreadInfo(threadBean.getAllThreadIds(), 0)) {
         long threadId = threadInfo.getThreadId();
         String threadName = escapeThreadName(threadInfo.getThreadName());
-        long threadCpuTime = threadBean.getThreadCpuTime(threadId);
-        Attributes threadAttributes = threadAttributes(threadInfo, threadName);
-        times.put(threadAttributes, threadCpuTime);
+        long totalCpuTime = threadBean.getThreadCpuTime(threadId);
+        long userCpuTime = threadBean.getThreadUserTime(threadId);
+        long systemCpuTime = totalCpuTime - userCpuTime;
+        Attributes threadAttributesUser =
+            threadAttributesWithMode(threadInfo, threadName, USER_MODE);
+        Attributes threadAttributesSystem =
+            threadAttributesWithMode(threadInfo, threadName, SYSTEM_MODE);
+        if (totalCpuTime > -1 && userCpuTime > -1) {
+          times.compute(
+              threadAttributesUser,
+              (attributes, value) -> value == null ? userCpuTime : userCpuTime + value);
+
+          times.compute(
+              threadAttributesSystem,
+              (attributes, value) -> value == null ? systemCpuTime : systemCpuTime + value);
+        }
+
+        times.forEach((threadAttributes, time) -> measurement.record(time, threadAttributes));
       }
-      times.forEach((threadAttributes, time) -> measurement.record(time, threadAttributes));
+      ;
     };
   }
 
-  private static Consumer<ObservableLongMeasurement> threadUserTimeCallback(
-      ThreadMXBean threadBean) {
-    return measurement -> {
-      Map<Attributes, Long> times = new HashMap<>();
-      long[] threadIds = threadBean.getAllThreadIds();
-      for (ThreadInfo threadInfo : threadBean.getThreadInfo(threadIds)) {
-        if (threadInfo == null) {
-          continue;
-        }
-        long threadId = threadInfo.getThreadId();
-        String threadName = escapeThreadName(threadInfo.getThreadName());
-        long threadCpuTime = threadBean.getThreadUserTime(threadId);
-        Attributes threadAttributes = threadAttributes(threadInfo, threadName);
-        times.put(threadAttributes, threadCpuTime);
-      }
-      times.forEach((threadAttributes, time) -> measurement.record(time, threadAttributes));
-    };
-  }
+  //  private static Consumer<ObservableLongMeasurement> threadCpuTimeCallback(
+  //      ThreadMXBean threadBean) {
+  //    return measurement -> {
+  //      Map<Attributes, Long> times = new HashMap<>();
+  //      long[] threadIds = threadBean.getAllThreadIds();
+  //      for (ThreadInfo threadInfo : threadBean.getThreadInfo(threadIds)) {
+  //        if (threadInfo == null) {
+  //          continue;
+  //        }
+  //        long threadId = threadInfo.getThreadId();
+  //        String threadName = escapeThreadName(threadInfo.getThreadName());
+  //        long threadCpuTime = threadBean.getThreadCpuTime(threadId);
+  //        Attributes threadAttributesUser = threadAttributesWithMode(threadInfo, threadName, );
+  //        times.put(threadAttributes, threadCpuTime);
+  //      }
+  //      times.forEach((threadAttributes, time) -> measurement.record(time, threadAttributes));
+  //    };
+  //  }
+
+  //  private static Consumer<ObservableLongMeasurement> threadUserTimeCallback(
+  //      ThreadMXBean threadBean) {
+  //    return measurement -> {
+  //      Map<Attributes, Long> times = new HashMap<>();
+  //      long[] threadIds = threadBean.getAllThreadIds();
+  //      for (ThreadInfo threadInfo : threadBean.getThreadInfo(threadIds)) {
+  //        if (threadInfo == null) {
+  //          continue;
+  //        }
+  //        long threadId = threadInfo.getThreadId();
+  //        String threadName = escapeThreadName(threadInfo.getThreadName());
+  //        long threadCpuTime = threadBean.getThreadUserTime(threadId);
+  //        Attributes threadAttributes = threadAttributes(threadInfo, threadName);
+  //        times.put(threadAttributes, threadCpuTime);
+  //      }
+  //      times.forEach((threadAttributes, time) -> measurement.record(time, threadAttributes));
+  //    };
+  //  }
 
   private static Consumer<ObservableLongMeasurement> java9AndNewerCallback(
       ThreadMXBean threadBean) {
@@ -155,6 +181,18 @@ public final class ThreadNames {
       }
       counts.forEach((threadAttributes, count) -> measurement.record(count, threadAttributes));
     };
+  }
+
+  private static Attributes threadAttributesWithMode(
+      ThreadInfo threadInfo, String threadName, String cpuMode) {
+    boolean isDaemon;
+    try {
+      isDaemon = (boolean) requireNonNull(THREAD_INFO_IS_DAEMON).invoke(threadInfo);
+    } catch (Throwable e) {
+      throw new IllegalStateException("Unexpected error happened during ThreadInfo#isDaemon()", e);
+    }
+    return Attributes.of(
+        JvmAttributes.JVM_THREAD_DAEMON, isDaemon, THREAD_NAME, threadName, CPU_MODE, cpuMode);
   }
 
   private static Attributes threadAttributesWithState(ThreadInfo threadInfo, String threadName) {
@@ -174,15 +212,16 @@ public final class ThreadNames {
         threadName);
   }
 
-  private static Attributes threadAttributes(ThreadInfo threadInfo, String threadName) {
-    boolean isDaemon;
-    try {
-      isDaemon = (boolean) requireNonNull(THREAD_INFO_IS_DAEMON).invoke(threadInfo);
-    } catch (Throwable e) {
-      throw new IllegalStateException("Unexpected error happened during ThreadInfo#isDaemon()", e);
-    }
-    return Attributes.of(JvmAttributes.JVM_THREAD_DAEMON, isDaemon, THREAD_NAME, threadName);
-  }
+  //  private static Attributes threadAttributes(ThreadInfo threadInfo, String threadName) {
+  //    boolean isDaemon;
+  //    try {
+  //      isDaemon = (boolean) requireNonNull(THREAD_INFO_IS_DAEMON).invoke(threadInfo);
+  //    } catch (Throwable e) {
+  //      throw new IllegalStateException("Unexpected error happened during ThreadInfo#isDaemon()",
+  // e);
+  //    }
+  //    return Attributes.of(JvmAttributes.JVM_THREAD_DAEMON, isDaemon, THREAD_NAME, threadName);
+  //  }
 
   private static String escapeThreadName(String threadName) {
     if (threadName == null) {
