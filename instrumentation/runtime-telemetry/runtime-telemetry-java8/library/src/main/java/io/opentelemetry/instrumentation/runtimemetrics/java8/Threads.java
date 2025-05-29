@@ -8,6 +8,7 @@ package io.opentelemetry.instrumentation.runtimemetrics.java8;
 import static java.util.Objects.requireNonNull;
 
 import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.api.metrics.ObservableLongMeasurement;
@@ -52,6 +53,8 @@ import javax.annotation.Nullable;
  */
 public final class Threads {
 
+  private static final AttributeKey<String> THREAD_NAME = AttributeKey.stringKey("jvm.thread.name");
+  private static final String SYSTEM_SAMPLE = "system_sample";
   // Visible for testing
   static final Threads INSTANCE = new Threads();
 
@@ -190,14 +193,24 @@ public final class Threads {
     }
     String threadState = threadInfo.getThreadState().name().toLowerCase(Locale.ROOT);
     return Attributes.of(
-        JvmAttributes.JVM_THREAD_DAEMON, isDaemon, JvmAttributes.JVM_THREAD_STATE, threadState);
+        JvmAttributes.JVM_THREAD_DAEMON,
+        isDaemon,
+        JvmAttributes.JVM_THREAD_STATE,
+        threadState,
+        THREAD_NAME,
+        SYSTEM_SAMPLE);
   }
 
   private static Attributes threadAttributes(Thread thread) {
     boolean isDaemon = thread.isDaemon();
     String threadState = thread.getState().name().toLowerCase(Locale.ROOT);
     return Attributes.of(
-        JvmAttributes.JVM_THREAD_DAEMON, isDaemon, JvmAttributes.JVM_THREAD_STATE, threadState);
+        JvmAttributes.JVM_THREAD_DAEMON,
+        isDaemon,
+        JvmAttributes.JVM_THREAD_STATE,
+        threadState,
+        THREAD_NAME,
+        SYSTEM_SAMPLE);
   }
 
   private Threads() {}
