@@ -121,10 +121,8 @@ public final class ThreadNames {
               threadAttributesSystem,
               (attributes, value) -> value == null ? systemCpuTime : systemCpuTime + value);
         }
-
-        times.forEach((threadAttributes, time) -> measurement.record(time, threadAttributes));
       }
-      ;
+      times.forEach((threadAttributes, time) -> measurement.record(time, threadAttributes));
     };
   }
 
