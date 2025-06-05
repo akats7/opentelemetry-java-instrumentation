@@ -20,7 +20,7 @@ import java.util.Collection;
 public class DemoSpanExporter implements SpanExporter {
   @Override
   public CompletableResultCode export(Collection<SpanData> spans) {
-    System.out.printf("%d spans exported%n", spans.size());
+    System.out.printf("hello %d spans exported%n", spans.size());
     return CompletableResultCode.ofSuccess();
   }
 

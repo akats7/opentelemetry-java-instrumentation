@@ -66,14 +66,44 @@ dependencies {
   // these serve as a test of the instrumentation boms
   implementation(platform("io.opentelemetry.instrumentation:opentelemetry-instrumentation-bom:${versions.opentelemetryJavaagent}"))
   implementation(platform("io.opentelemetry.instrumentation:opentelemetry-instrumentation-bom-alpha:${versions.opentelemetryJavaagentAlpha}"))
+  implementation("io.opentelemetry:opentelemetry-sdk-extension-autoconfigure-spi")
+  implementation("io.opentelemetry.semconv:opentelemetry-semconv-incubating")
 
   /*
   Interfaces and SPIs that we implement. We use `compileOnly` dependency because during
   runtime all necessary classes are provided by javaagent itself.
    */
   compileOnly("io.opentelemetry:opentelemetry-sdk-extension-autoconfigure-spi")
+  compileOnly("io.opentelemetry:opentelemetry-sdk-extension-autoconfigure:${versions.opentelemetrySdk}")
   compileOnly("io.opentelemetry.instrumentation:opentelemetry-instrumentation-api")
   compileOnly("io.opentelemetry.javaagent:opentelemetry-javaagent-extension-api")
+
+  //____
+  implementation(platform("io.opentelemetry:opentelemetry-bom:${versions.opentelemetrySdk}"))
+  implementation(platform("io.opentelemetry.instrumentation:opentelemetry-instrumentation-bom:${versions.opentelemetryJavaagent}"))
+  implementation(platform("io.opentelemetry.instrumentation:opentelemetry-instrumentation-bom-alpha:${versions.opentelemetryJavaagentAlpha}"))
+
+  // OpenTelemetry core API (GlobalOpenTelemetry, Meter, etc.)
+  implementation("io.opentelemetry:opentelemetry-api")
+
+  // SDK autoconfiguration (AutoConfiguredOpenTelemetrySdk)
+  compileOnly("io.opentelemetry:opentelemetry-sdk-extension-autoconfigure:${versions.opentelemetrySdk}")
+  compileOnly("io.opentelemetry:opentelemetry-sdk-extension-autoconfigure-spi")
+
+  // Agent extension API (AgentListener)
+  compileOnly("io.opentelemetry.javaagent:opentelemetry-javaagent-extension-api")
+
+  // Instrumentation internal utilities (EmbeddedInstrumentationProperties)
+  compileOnly("io.opentelemetry.instrumentation:opentelemetry-instrumentation-api")
+
+  // AutoService for registering AgentListener
+  compileOnly("com.google.auto.service:auto-service:1.1.1")
+  annotationProcessor("com.google.auto.service:auto-service:1.1.1")
+
+  // For @Nullable annotations
+  compileOnly("javax.annotation:javax.annotation-api:1.3.2")
+  //___
+
 
   //Provides @AutoService annotation that makes registration of our SPI implementations much easier
   compileOnly deps.autoservice
